@@ -1,0 +1,3 @@
+[submodule "simbricks"]
+	path = simbricks
+	url = git@github.com:simbricks/simbricks.git
