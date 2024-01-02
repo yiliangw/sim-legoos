@@ -1,33 +1,44 @@
-simbricks_docker := simbricks/simbricks-build
-simbricks_docker_name := simlego_simbricks_
-simbricks_docker_exec := docker exec $(simbricks_docker_name) /bin/bash -c
+simbricks_docker_img := simbricks/simbricks-build
+simbricks_container_name := simlego_simbricks_
+simbricks_container_exec := docker exec $(simbricks_container_name) /bin/bash -c
 
-legoos_docker := legoos-build
-legoos_docker_name := simlego_legoos_
-legoos_docker_exec := docker exec $(legoos_docker_name) /bin/bash -c
+legoos_docker_img := legoos-build
+legoos_container_name := simlego_legoos_
+legoos_container_exec := docker exec $(legoos_container_name) /bin/bash -c
 
-legoos_docker_ready := legoos-docker.ready
+legoos_docker_ready := $(build_dir)legoos-docker.ready
 
-.PHONY: start-docker-simbricks stop-docker-simbricks start-docker-legoos stop-docker-legoos
+define start_container # $(1) - container name, $(2) - image name
+	$(call stop_container,$(1))
+	docker run --rm -d -i --name $(1) \
+		--mount type=bind,source=$(shell pwd),target=/workspace/ \
+		--workdir /workspace/ \
+		$(2)
+endef
 
-start-docker-simbricks:
-	docker run --rm -d -i --name $(simbricks_docker_name) \
-		--mount type=bind,source=$(shell pwd),target=/workspace/LegoOS-sim \
-		--workdir /workspace/LegoOS-sim \
-		simbricks/simbricks-build
+define stop_container
+	@if docker ps -q -f name="^$(1)$$"; then \
+		echo "Stopping container $(1)"; \
+		docker rm -f $(1); \
+	else \
+		echo "Container $(1) not running"; \
+	fi
+endef
 
-stop-docker-simbricks:
-	docker rm -f $(simbricks_docker_name)
+.PHONY: start-container-simbricks stop-container-simbricks start-container-legoos stop-docker-legoos
 
-start-docker-legoos:
-	docker run --rm -d -i --name $(legoos_docker_name) \
-		--mount type=bind,source=$(shell pwd),target=/workspace/LegoOS-sim \
-		--workdir /workspace/LegoOS-sim \
-		legoos-build
+start-container-simbricks:
+	$(call start_container,$(simbricks_container_name),$(simbricks_docker_img))
 
-stop-docker-legoos:
-	docker rm -f $(legoos_docker_name)
+stop-container-simbricks:
+	$(call stop_container,$(simbricks_container_name))
+
+start-container-legoos:
+	$(call start_container,$(legoos_container_name),$(legoos_docker_img))
+
+stop-container-legoos:
+	$(call stop_container,$(legoos_container_name))
 
 $(legoos_docker_ready): Dockerfile.legoos
-	docker build -t $(legoos_docker) -f $< .
+	docker build -t $(legoos_docker_img) -f $< .
 	touch $@

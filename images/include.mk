@@ -1,42 +1,67 @@
-dir := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-output_dir := $(dir)output/
-cache_dir := $(dir)cache/
+### These variables should not be used in commands
+dir := $(dir $(lastword $(MAKEFILE_LIST)))
+output_dir := output/
+build_dir := build/$(dir)
+###
 
-PACKER_VERSION := 1.9.0
-KERNEL_VERSION := 3.13.1
+packer_version := 1.9.0
+linux_version := 3.13.1
 
-DISK_IMG := $(output_dir)ubuntu14
+disk_img := $(output_dir)ubuntu-14
+vmlinux := $(output_dir)vmlinux-$(linux_version)
 
-seedimg :=  $(cache_dir)seed.img
-packer := $(cache_dir)packer_$(PACKER_VERSION)
+linux_src_dir := $(build_dir)linux-$(linux_version)/
+seed_img :=  $(build_dir)seed.img
+packer := $(build_dir)packer_$(packer_version)
 
-$(output_dir):
-	mkdir -p $@
 
-$(seedimg): $(dir)user-data $(dir)meta-data
-	mkdir -p $(dir $@)
+$(seed_img): $(dir)disk/user-data $(dir)disk/meta-data
+	mkdir -p $(@D)
 	rm -f $@
-	cloud-localds $@ $(dir)user-data $(dir)meta-data
+	cloud-localds $@ $^
 
-$(packer):
-	mkdir -p $(dir $@)
-	wget -O $(cache_dir)packer_$(PACKER_VERSION)_linux_amd64.zip \
-	    https://releases.hashicorp.com/packer/$(PACKER_VERSION)/packer_$(PACKER_VERSION)_linux_amd64.zip
-	cd $(cache_dir) && unzip -u packer_$(PACKER_VERSION)_linux_amd64.zip
-	mv $(cache_dir)packer $(packer)
-	rm -f $(cache_dir)packer_$(PACKER_VERSION)_linux_amd64.zip
+$(build_dir)packer_$(packer_version)_linux_amd64.zip:
+	mkdir -p $(@D)
+	wget -O $@ https://releases.hashicorp.com/packer/$(packer_version)/packer_$(packer_version)_linux_amd64.zip
 
-$(DISK_IMG): $(output_dir) $(packer) $(seedimg) $(SIMBRICKS_READY) $(QEMU) $(dir)ubuntu14.pkr.hcl
-	rm -rf $(cache_dir)packer_output
-	export PATH=$(SIMBRICKS_DIR)sims/external/qemu/:$(SIMBRICKS_DIR)sims/external/qemu/build/:$$PATH && \
-	cd $(dir) && PACKER_CACHE_DIR=$(cache_dir)/packer_cache $(abspath $(packer)) build \
+$(packer): $(build_dir)packer_$(packer_version)_linux_amd64.zip
+	unzip -u -d$(@D) $<
+	mv $(@D)/packer $(packer)
+
+$(build_dir)packer_output/$(notdir $(disk_img)): cache_dir := $(build_dir)packer_cache/
+$(build_dir)packer_output/$(notdir $(disk_img)): $(dir)disk/ubuntu-14.pkr.hcl $(packer) $(seed_img) $(qemu_ready)
+	rm -rf $(@D)
+	export PATH=$(abspath $(qemu_dir)):$(abspath $(qemu_dir)build/):$$PATH && \
+	PACKER_BUILD_DIR=$(cache_dir) $(abspath $(packer)) build \
 		-var "cpus=$$(nproc)" \
-		-var "out_dir=$(cache_dir)packer_output/" \
-		-var "out_name=$(notdir $(DISK_IMG))" \
-		-var "bios_dir=$(SIMBRICKS_DIR)sims/external/qemu/pc-bios/" \
-		-var "seedimg_path=$(seedimg)" \
-		ubuntu14.pkr.hcl
-	mv $(cache_dir)packer_output/$(notdir $(DISK_IMG)) $@
+		-var "out_dir=$(@D)" \
+		-var "out_name=$(@F)" \
+		-var "bios_dir=$(qemu_dir)pc-bios/" \
+		-var "seedimg_path=$(seed_img)" \
+		$<
+	
+$(disk_img): $(build_dir)packer_output/$(notdir $(disk_img))
+	mkdir -p $(@D)
+	cp $< $@
 
-.PHONY: disk-image
-disk-image: $(DISK_IMG)
+.PHONY: build-disk-image
+build-disk-image: $(disk_img)
+
+$(build_dir)/linux-$(linux_version).tar.xz:
+	mkdir -p $(@D)
+	wget -O $@ https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-$(linux_version).tar.xz
+
+$(linux_src_dir): $(build_dir)/linux-$(linux_version).tar.xz
+	tar -xf $< -C $(shell dirname $@)
+
+$(vmlinux): $(dir)linux/config-$(linux_version) $(legoos_docker_ready) $(linux_src_dir) 
+	mkdir -p $(@D)
+	cp $< $(linux_src_dir).config
+	$(MAKE) start-container-legoos
+	$(legoos_container_exec) "make -C$(linux_src_dir) -j$$(nproc) bzImage"
+	$(MAKE) stop-docker-legoos
+	cp $(linux_src_dir)arch/x86/boot/bzImage $@
+
+.PHONY: build-linux
+build-linux: $(vmlinux)
+

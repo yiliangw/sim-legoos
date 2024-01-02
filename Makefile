@@ -1,7 +1,7 @@
-.PHONY: all
+.PHONY: all help
+
 all: help
 
-.PHONY: help
 help:
 	@echo "Usage: make [target]"
 	@echo "Targets:"
@@ -10,19 +10,40 @@ help:
 	@echo "  build-simbricks:   build required components in simbricks"
 	@echo "  help:              print this help message"
 
+### These variables should not be used in commands
+output_dir := output/
+build_dir := build/
+###
+
+simbricks_dir := simbricks/
+qemu_dir := $(simbricks_dir)sims/external/qemu/
+
+simbricks_ready := $(build_dir)simbricks.ready
+qemu_ready := $(build_dir)qemu.ready
+
+$(simbricks_ready): $(simbricks_dir)
+	$(MAKE) start-container-simbricks
+	$(simbricks_container_exec) 'make -C $(simbricks_dir) -j$$(nproc)'
+	$(MAKE) stop-container-simbricks
+	mkdir -p $(@D) && touch $@
+
+$(qemu_ready): $(qemu_dir)
+	$(MAKE) start-container-simbricks
+	$(simbricks_container_exec) 'make -C $(simbricks_dir) -j$$(nproc) sims/external/qemu/ready'
+	$(MAKE) stop-container-simbricks
+	mkdir -p $(@D) && touch $@
+
+.PHONY: build-simbricks build-qemu
+
+build-simbricks: $(simbricks_ready)
+
+build-qemu: $(qemu_ready)
+
+CLEAN_ALL := $(output_dir) $(build_dir)
+.PHONY: clean
+clean:
+	sudo rm -rf $(CLEAN_ALL)
+	
 
 include docker.mk
 include images/include.mk
-
-SIMBRICKS_DIR := $(abspath simbricks)/
-SIMBRICKS_READY := simbricks.ready
-QEMU_IMG := $(SIMBRICKS_DIR)sims/external/qemu/build/qemu-img
-QEMU := $(SIMBRICKS_DIR)sims/external/qemu/build/qemu-system-x86_64
-
-.PHONY: build-simbricks
-build-simbricks: $(SIMBRICKS_READY)
-
-$(SIMBRICKS_READY): simbricks/
-	$(simbricks_docker_exec) 'make -C simbricks -j$$(nproc) && \
-		make -C simbricks -j$$(nproc) sims/external/qemu/ready'
-	touch $@
