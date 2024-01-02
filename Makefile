@@ -23,6 +23,6 @@ QEMU := $(SIMBRICKS_DIR)sims/external/qemu/build/qemu-system-x86_64
 build-simbricks: $(SIMBRICKS_READY)
 
 $(SIMBRICKS_READY): simbricks/
-	$(DOCKER_EXEC) 'make -C simbricks -j$$(nproc) && \
+	$(simbricks_docker_exec) 'make -C simbricks -j$$(nproc) && \
 		make -C simbricks -j$$(nproc) sims/external/qemu/ready'
 	touch $@

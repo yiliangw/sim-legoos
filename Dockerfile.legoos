@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1
+
+ARG UBUNTU_VERSION=14.04
+FROM ubuntu:${UBUNTU_VERSION} AS base
+
+ARG WORKDIR=/workspace
+
+RUN mkdir -p ${WORKDIR}
+WORKDIR ${WORKDIR}
+
+RUN apt-get update && apt-get install -y \
+    build-essential libncurses-dev gawk flex bison \
+    openssl libssl-dev dkms libelf-dev libudev-dev \
+    libpci-dev libiberty-dev autoconf llvm bc
+    
