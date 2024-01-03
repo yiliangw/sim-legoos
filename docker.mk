@@ -6,13 +6,15 @@ legoos_docker_img := legoos-build
 legoos_container_name := simlego_legoos_
 legoos_container_exec := docker exec $(legoos_container_name) /bin/bash -c
 
+container_root := /workspace/
+
 legoos_docker_ready := $(build_dir)legoos-docker.ready
 
 define start_container # $(1) - container name, $(2) - image name
 	$(call stop_container,$(1))
 	docker run --rm -d -i --name $(1) \
-		--mount type=bind,source=$(shell pwd),target=/workspace/ \
-		--workdir /workspace/ \
+		--mount type=bind,source=$(shell pwd),target=$(container_root) \
+		--workdir $(container_root) \
 		$(2)
 endef
 
@@ -40,5 +42,6 @@ stop-container-legoos:
 	$(call stop_container,$(legoos_container_name))
 
 $(legoos_docker_ready): Dockerfile.legoos
+	mkdir -p $(@D)
 	docker build -t $(legoos_docker_img) -f $< .
 	touch $@
