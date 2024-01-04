@@ -12,6 +12,8 @@ disk_img 	:= $(output_dir)ubuntu-14
 vmlinux 	:= $(output_dir)vmlinux-$(linux_version)
 ethfit_ko 	:= $(output_dir)ethfit.ko
 storage_ko 	:= $(output_dir)storage.ko
+pcomponent_bzimg := $(output_dir)pcomponent.bzImage
+mcomponent_bzimg := $(output_dir)mcomponent.bzImage
 
 
 # Disk image
@@ -76,9 +78,38 @@ $(build_dir)/linux-$(linux_version).tar.xz:
 	mkdir -p $(@D)
 	wget -O $@ https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-$(linux_version).tar.xz
 
+# Processor and memory component
+legoos_dir 		:= $(dir)legoos/
+
+.PHONY: build-pcomponent build-mcomponent
+build-pcomponent: $(pcomponent_bzimg)
+build-mcomponent: $(mcomponent_bzimg)
+
+# Ensure we are using the value for the current level of make
+$(pcomponent_bzimg) $(mcomponent_bzimg): build_dir := $(build_dir)
+
+$(pcomponent_bzimg): $(dir)legoos-configs/pcomponent.config $(legoos_docker_ready) $(legoos_dir)
+	mkdir -p $(@D)
+	mkdir -p $(build_dir)pcomponent
+	cp $< $(build_dir)pcomponent/.config
+	$(MAKE) start-container-legoos
+	$(legoos_container_exec) "make -C $(legoos_dir) mrproper && \
+		make -C $(legoos_dir) O=$(container_root)$(build_dir)pcomponent -j$$(nproc)"
+	$(MAKE) stop-docker-legoos
+	cp $(build_dir)pcomponent/arch/x86/boot/bzImage $@
+
+$(mcomponent_bzimg): $(dir)legoos-configs/mcomponent.config $(legoos_docker_ready) $(legoos_dir)
+	mkdir -p $(@D)
+	mkdir -p $(build_dir)mcomponent
+	cp $< $(build_dir)mcomponent/.config
+	$(MAKE) start-container-legoos
+	$(legoos_container_exec) "make -C $(legoos_dir) mrproper && \
+		make -C $(legoos_dir) O=$(container_root)$(build_dir)mcomponent -j$$(nproc)"
+	$(MAKE) stop-docker-legoos
+	cp $(build_dir)mcomponent/arch/x86/boot/bzImage $@
+
 
 # Linux kernel modules for the storage component
-legoos_dir := $(dir)legoos/
 
 .PHONY: build-linux-modules
 build-linux-modules: $(ethfit_ko) $(storage_ko)
