@@ -2,15 +2,10 @@
 
 ## Quick Start
 
+Ensure `docker` and `cloud-localds` are available. 
+Then use the following commands to run the example program
+
 ```bash
 # Initialize submodules
 git submodule update --init
-
-# Start simbricks/simbricks-build docker container
-make start-docker
-
-# Compile required components in Simbricks
-make build-simbricks
-
-
 ```

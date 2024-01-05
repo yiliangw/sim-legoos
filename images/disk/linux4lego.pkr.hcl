@@ -16,7 +16,7 @@ variable "out_dir" {
 
 variable "out_name" {
   type    = string
-  default = "ubuntu-14"
+  default = "linux4lego"
 }
 
 variable "bios_dir" {
@@ -29,8 +29,17 @@ variable "seedimg_path" {
   default = ""
 }
 
+variable "input_tar" {
+  type    = string
+  default = ""
+}
 
-source "qemu" "ubuntu14" {
+variable "install_script" {
+  type    = string
+  default = ""
+}
+
+source "qemu" "linux4lego" {
   output_directory = "${var.out_dir}"
   communicator     = "ssh"
   cpus             = "${var.cpus}"
@@ -46,6 +55,7 @@ source "qemu" "ubuntu14" {
     ["-machine", "pc-q35-4.2,accel=kvm:tcg,usb=off,vmport=off,dump-guest-core=off"],
     ["-drive", "file=${var.out_dir}/${var.out_name},if=ide,index=0,cache=writeback,discard=ignore,media=disk,format=qcow2"],
     ["-drive", "file=${var.seedimg_path},if=ide,index=1,media=disk,driver=raw"],
+    ["-drive", "file=${var.input_tar},if=ide,index=2,media=disk,driver=raw"],
     ["-L", "${var.bios_dir}"],
     ["-boot", "c"]
   ]
@@ -57,9 +67,10 @@ source "qemu" "ubuntu14" {
 }
 
 build {
-  sources = ["source.qemu.ubuntu14"]
+  sources = ["source.qemu.linux4lego"]
 
   provisioner "shell" {
-    inline = ["pwd"]
+    execute_command = "{{ .Vars }} sudo -S -E bash '{{ .Path }}'"
+    scripts         = ["${var.install_script}"]
   }
 }
