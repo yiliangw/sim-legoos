@@ -12,7 +12,7 @@ disk_img 	:= $(output_dir)linux4lego
 vmlinuz 	:= $(output_dir)vmlinuz
 ethfit_ko 	:= $(output_dir)lego-linux-modules/ethfit.ko
 storage_ko 	:= $(output_dir)lego-linux-modules/storage.ko
-pcomponent_bzimg := $(output_dir)lego-kernels/pcomponent.bzImage[
+pcomponent_bzimg := $(output_dir)lego-kernels/pcomponent.bzImage
 mcomponent_bzimg := $(output_dir)lego-kernels/mcomponent.bzImage
 
 # Targets
