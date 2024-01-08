@@ -6,8 +6,7 @@ import os
 EXP_ROOT=os.path.dirname(os.path.abspath(__file__))
 sys.path.append(EXP_ROOT)
 from components import LegoPComponentNode, LegoMComponentNode, \
-    LegoKernelQemuHost, LegoModuleConfig, LegoModuleNode, LegoModuleQemuHost, \
-    DISK_RESOURCES_DIR
+    LegoKernelQemuHost, LegoModuleConfig, LegoModuleNode, LegoModuleQemuHost
 
 
 SYNC             = os.getenv('sync')
@@ -27,7 +26,7 @@ e = Experiment('LegoOS-hello-world')
 e.checkpoint = True
 
 # Processor component
-pcomponent_node = LegoPComponentNode(initcmd=f'/bin/cat {DISK_RESOURCES_DIR}/text.txt')
+pcomponent_node = LegoPComponentNode(initcmd=f'/bin/echo Hello World!')
 pcomponent = LegoKernelQemuHost(pcomponent_node)
 pcomponent.name = 'pcomponent'
 pcomponent.wait = True
@@ -52,7 +51,6 @@ e.add_nic(mcomponent_nic)
 # Storage component
 scomponent_config = LegoModuleConfig()
 scomponent_config.modules = ['ethfit', 'storage']
-scomponent_config.resources = [('text.txt', f'{EXP_ROOT}/hello-world/text.txt')]
 scomponent_node = LegoModuleNode(scomponent_config)
 scomponent = LegoModuleQemuHost(scomponent_node)
 scomponent.name = 'scomponent'
