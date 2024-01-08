@@ -1,6 +1,6 @@
 ### These variables should not be used in commands
-dir := $(dir $(lastword $(MAKEFILE_LIST)))
-output_dir := output/
+dir := images/
+output_dir := output/$(dir)
 build_dir := build/$(dir)
 ###
 
@@ -10,11 +10,15 @@ packer_version := 1.9.0
 # Ouput files
 disk_img 	:= $(output_dir)linux4lego
 vmlinuz 	:= $(output_dir)vmlinuz
-ethfit_ko 	:= $(output_dir)ethfit.ko
-storage_ko 	:= $(output_dir)storage.ko
-pcomponent_bzimg := $(output_dir)pcomponent.bzImage
-mcomponent_bzimg := $(output_dir)mcomponent.bzImage
+ethfit_ko 	:= $(output_dir)lego-linux-modules/ethfit.ko
+storage_ko 	:= $(output_dir)lego-linux-modules/storage.ko
+pcomponent_bzimg := $(output_dir)lego-kernels/pcomponent.bzImage[
+mcomponent_bzimg := $(output_dir)lego-kernels/mcomponent.bzImage
 
+# Targets
+pcomponent_prerequisites := $(pcomponent_bzimg)
+mcomponent_prerequisites := $(mcomponent_bzimg)
+scomponent_prerequisites := $(disk_img) $(ethfit_ko) $(storage_ko) $(vmlinuz)
 
 # Disk image
 packer := $(build_dir)packer
@@ -23,9 +27,6 @@ disk_img_name := $(notdir $(disk_img))
 disk_input_tar := $(build_dir)$(disk_img_name)-input.tar
 disk_input := $(build_dir)$(disk_img_name)-input
 
-.PHONY: build-disk-image
-build-disk-image: $(disk_img)
-
 $(disk_img): $(build_dir)packer-output/$(disk_img_name)
 	mkdir -p $(@D)
 	cp $< $@
@@ -33,7 +34,7 @@ $(disk_img): $(build_dir)packer-output/$(disk_img_name)
 $(build_dir)packer-output/$(disk_img_name): cache_dir := $(build_dir)packer-cache/
 $(build_dir)packer-output/$(disk_img_name): dir := $(dir)
 $(build_dir)packer-output/$(disk_img_name): $(dir)disk/$(disk_img_name).pkr.hcl \
-	$(dir)disk/install.sh $(packer) $(seed_img) $(qemu_ready) $(disk_input_tar)
+	$(dir)disk/install.sh $(packer) $(seed_img) $(qemu) $(disk_input_tar)
 	rm -rf $(@D)
 	export PATH=$(abspath $(qemu_dir)):$(abspath $(qemu_dir)build/):$$PATH && \
 	PACKER_BUILD_DIR=$(cache_dir) $(abspath $(packer)) build \
@@ -96,16 +97,12 @@ $(build_dir)linux-$(linux_version).tar.xz:
 	wget -O $@ https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-$(linux_version).tar.xz
 
 # Processor and memory component
-legoos_dir 		:= $(dir)legoos/
-
-.PHONY: build-pcomponent build-mcomponent
-build-pcomponent: $(pcomponent_bzimg)
-build-mcomponent: $(mcomponent_bzimg)
+legoos_dir := $(dir)legoos/
 
 # Ensure we are using the value for the current level of make
 $(pcomponent_bzimg) $(mcomponent_bzimg): build_dir := $(build_dir)
 
-$(pcomponent_bzimg): $(dir)legoos-configs/config-pcomponent $(legoos_docker_ready) $(legoos_dir)
+$(pcomponent_bzimg): $(dir)legoos-configs/config-pcomponent $(legoos_docker_ready)
 	mkdir -p $(@D)
 	mkdir -p $(build_dir)pcomponent-build
 	cp $< $(build_dir)pcomponent-build/.config
@@ -115,7 +112,7 @@ $(pcomponent_bzimg): $(dir)legoos-configs/config-pcomponent $(legoos_docker_read
 	$(MAKE) stop-docker-legoos
 	cp $(build_dir)pcomponent-build/arch/x86/boot/bzImage $@
 
-$(mcomponent_bzimg): $(dir)legoos-configs/config-mcomponent $(legoos_docker_ready) $(legoos_dir)
+$(mcomponent_bzimg): $(dir)legoos-configs/config-mcomponent $(legoos_docker_ready)
 	mkdir -p $(@D)
 	mkdir -p $(build_dir)mcomponent-build
 	cp $< $(build_dir)mcomponent-build/.config
@@ -123,14 +120,10 @@ $(mcomponent_bzimg): $(dir)legoos-configs/config-mcomponent $(legoos_docker_read
 	$(legoos_container_exec) "make -C $(legoos_dir) mrproper && \
 		make -C $(legoos_dir) O=$(container_root)$(build_dir)mcomponent-build -j$$(nproc)"
 	$(MAKE) stop-docker-legoos
-	cp $(build_dir)mcomponent/arch/x86/boot/bzImage $@
+	cp $(build_dir)mcomponent-build/arch/x86/boot/bzImage $@
 
 
 # Linux kernel modules for the storage component
-
-.PHONY: build-storage-modules
-build-storage-modules: $(ethfit_ko) $(storage_ko)
-
 $(ethfit_ko): $(legoos_dir)linux-modules/fit/eth/ethfit.ko
 	mkdir -p $(@D)
 	cp $< $@

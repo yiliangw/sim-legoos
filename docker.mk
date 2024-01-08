@@ -1,3 +1,5 @@
+build_dir := build/
+
 simbricks_docker_img := simbricks/simbricks-build
 simbricks_container_name := simlego_simbricks_
 simbricks_container_exec := docker exec $(simbricks_container_name) /bin/bash -c
