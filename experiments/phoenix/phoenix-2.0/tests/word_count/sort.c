@@ -115,13 +115,13 @@ void mapreduce_sort(void *base, size_t num_elems, size_t width,
     map_reduce_args.partition = mr_mypartition; 
     map_reduce_args.result = &sort_vals;
     map_reduce_args.data_size = num_elems * width;
-    map_reduce_args.L1_cache_size = atoi(MR_GETENV("MR_L1CACHESIZE"));//1024 * 1024 * 2;
-    map_reduce_args.num_map_threads = atoi(MR_GETENV("MR_NUMTHREADS"));//8;
-    map_reduce_args.num_reduce_threads = atoi(MR_GETENV("MR_NUMTHREADS"));//16;
-    map_reduce_args.num_merge_threads = atoi(MR_GETENV("MR_NUMTHREADS"));//8;
-    map_reduce_args.num_procs = atoi(MR_GETENV("MR_NUMPROCS"));//16;
+    map_reduce_args.L1_cache_size = 0;//1024 * 1024 * 2;
+    map_reduce_args.num_map_threads = 0;//8;
+    map_reduce_args.num_reduce_threads = 0;//16;
+    map_reduce_args.num_merge_threads = 0;//8;
+    map_reduce_args.num_procs = 0;//16;
     map_reduce_args.key_match_factor = (float)atof(MR_GETENV("MR_KEYMATCHFACTOR"));//2;
-    map_reduce_args.use_one_queue_per_task = atoi(MR_GETENV("MR_1QPERTASK")) ? true : false;
+    map_reduce_args.use_one_queue_per_task = false;
 
     get_time (&end);
 

@@ -39,6 +39,8 @@ WC_OBJS_SEQ := word_count-seq.o
 
 PROGS := word_count word_count-pthread word_count-seq
 
+CFLAG += NO_MMAP
+
 .PHONY: default all clean lib
 
 default: all

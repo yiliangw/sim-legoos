@@ -51,3 +51,9 @@ run-disk-image: $(qemu) $(disk_img) $(vmlinuz)
 		-L $(qemu_dir)pc-bios
 	
 
+.PHONY: run-phoenix-local
+run-phoenix-dev:
+	rm -f $(phoenix_word_count)
+	$(MAKE) $(phoenix_word_count)
+	$(phoenix_word_count) $(experiment_dir)phoenix/words.txt
+

@@ -240,7 +240,8 @@ map_reduce_init ()
     return 0;
 }
 
-#define FLAG(no)    printf("flag-%d\n", no)
+// #define FLAG(no)    printf("flag-%d\n", no)
+#define FLAG(no)
 
 int
 map_reduce (map_reduce_args_t * args)

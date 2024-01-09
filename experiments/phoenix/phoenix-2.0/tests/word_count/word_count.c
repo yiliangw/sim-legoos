@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
 
     mapreduce_sort(wc_vals.data, wc_vals.length, sizeof(keyval_t), mykeyvalcmp);
 
-    CHECK_ERROR (map_reduce_finalize ());
+    // CHECK_ERROR (map_reduce_finalize ());
 
     printf("Wordcount: MapReduce Completed\n");
 

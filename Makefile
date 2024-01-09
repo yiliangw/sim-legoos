@@ -33,6 +33,9 @@ $(qemu): $(qemu_dir)
 	$(simbricks_container_exec) 'make -C $(simbricks_dir) -j$$(nproc) sims/external/qemu/ready'
 	$(MAKE) stop-container-simbricks
 
+
+# Experiments
+experiment_dir := experiments/
 simbricks_run_cmd := python3 $(simbricks_dir)experiments/run.py --force --verbose \
 	--repo=$(simbricks_dir) --workdir=$(output_dir) --outdir=$(output_dir) --cpdir=$(output_dir) \
 	--runs=0 \
@@ -44,7 +47,32 @@ run-hello-world: $(simbricks_ready) $(qemu) $(pcomponent_prerequisites) $(mcompo
 	pcomponent_mac="52:54:00:12:34:56" \
 	mcomponent_mac="52:54:00:12:34:57" \
 	scomponent_mac="52:54:00:12:34:58" \
-	$(simbricks_run_cmd) $(abspath experiments/hello-world.py)
+	$(simbricks_run_cmd) $(abspath $(experiment_dir)hello-world.py)
+
+phoenix_word_count := $(output_dir)phoenix/word_count
+
+$(phoenix_word_count): $(legoos_docker_ready)
+	$(MAKE) start-container-legoos
+	$(legoos_container_exec) 'make -C $(experiment_dir)phoenix/phoenix-2.0/tests/word_count clean all'
+	$(MAKE) stop-container-legoos
+	mkdir -p $(@D)
+	cp $(experiment_dir)phoenix/phoenix-2.0/tests/word_count/word_count $@
+
+$(experiment_dir)phoenix/phoenix-2.0/tests/word_count/word_count:
+	$(MAKE) start-container-simbricks
+	$(simbricks_container_exec) 'make -C $(@D)'
+	$(MAKE) stop-container-simbricks
+
+
+.PHONY: run-phoenix-word-count
+run-phoenix-word-count: $(simbricks_ready) $(qemu) $(phoenix_word_count) \
+	$(pcomponent_prerequisites) $(mcomponent_prerequisites) $(scomponent_prerequisites)
+	sudo \
+	sync=1 sync_period=1000 \
+	pcomponent_mac="52:54:00:12:34:56" \
+	mcomponent_mac="52:54:00:12:34:57" \
+	scomponent_mac="52:54:00:12:34:58" \
+	$(simbricks_run_cmd) $(abspath $(experiment_dir)phoenix-word-count.py)
 
 
 CLEAN_ALL := $(output_dir) $(build_dir)
