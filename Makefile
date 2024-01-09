@@ -5,10 +5,9 @@ all: help
 help:
 	@echo "Usage: make [target]"
 	@echo "Targets:"
-	@echo "  start-docker:      start container simbricks/simbricks-build"
-	@echo "  stop-docker:       stop and remove container simbricks/simbricks-build"
-	@echo "  build-simbricks:   build required components in simbricks"
-	@echo "  help:              print this help message"
+	@echo "  run-hello-world:           run the hello world experiment"
+	@echo "  run-phoenix-word-count:    run the phoenix word count experiment"
+	@echo "  clean:                     clean all generated files"
 
 include docker.mk
 include images/include.mk
@@ -79,6 +78,8 @@ CLEAN_ALL := $(output_dir) $(build_dir)
 .PHONY: clean
 clean:
 	sudo rm -rf $(CLEAN_ALL)
+	$(MAKE) -C $(simbricks_dir) clean-all
+	$(MAKE) -C $(experiment_dir)phoenix/phoenix-2.0/tests/word_count clean
 
 
 include dev.mk
